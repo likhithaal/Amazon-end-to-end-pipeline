@@ -14,6 +14,7 @@ variables:
   DockerfilePath: '$(Build.SourcesDirectory)/Amazon/Dockerfile'
   sonarConnectionName: 'lal-sonarqube' 
   SONAR_HOST_URL: 'http://52.140.126.191:9000'  
+  SONAR_TOKEN: sqa_48431100ba9caf587f947d18a2df48a37c9577dc 
 
 steps:
 # Step 1: Code Checkout
@@ -56,7 +57,7 @@ steps:
   inputs:
     mavenPomFile: 'Amazon/pom.xml'
     goals: 'sonar:sonar'
-    options: '-Dsonar.host.url=$(SONAR_HOST_URL)'  
+    options: '-Dsonar.host.url=$(SONAR_HOST_URL) -Dsonar.login=$(SONAR_TOKEN) -Dsonar.projectKey=amazon-app'
   displayName: '5.2 Run SonarQube Code Scan'
   
 
