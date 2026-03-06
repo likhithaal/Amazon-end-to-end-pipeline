@@ -19,6 +19,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
+    <sonar.sources>src/main/java</sonar.sources>
+    <sonar.tests>src/test/java</sonar.tests>
+    <sonar.java.binaries>target/classes</sonar.java.binaries>
+    <sonar.exclusions>**/target/**</sonar.exclusions>
   </properties>
 
   <dependencies>
