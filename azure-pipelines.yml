@@ -1,0 +1,16 @@
+# CI Pipeline
+trigger:
+- main
+
+pool:
+  name: likhitha-b12
+
+steps:
+- checkout: self
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'Amazon/pom.xml'
+    goals: 'package'
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: 'Amazon/Amazon-Web/target/*.war'
