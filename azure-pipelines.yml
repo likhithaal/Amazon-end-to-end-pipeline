@@ -42,6 +42,39 @@ steps:
     testRunTitle: 'JUnit Tests'
   displayName: '4. Publish Test Reports'
 
+  # Step: Install Java 17 on self-hosted agent
+- powershell: |
+    # Check if Java 17 already exists
+    $java17Path = "C:\Program Files\Java\jdk-17"
+    
+    if (-not (Test-Path $java17Path)) {
+        Write-Host "Java 17 not found. Downloading and installing..."
+        
+        # Download Java 17
+        $url = "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.12_7.zip"
+        $zipPath = "$env:TEMP\jdk17.zip"
+        
+        Invoke-WebRequest -Uri $url -OutFile $zipPath
+        
+        # Extract to Program Files
+        Expand-Archive -Path $zipPath -DestinationPath "C:\Program Files\Java\" -Force
+        
+        # Rename extracted folder to jdk-17
+        $extractedFolder = Get-ChildItem "C:\Program Files\Java\" -Directory | Where-Object {$_.Name -like "*jdk-17*"} | Select-Object -First 1
+        if ($extractedFolder -and $extractedFolder.Name -ne "jdk-17") {
+            Rename-Item -Path $extractedFolder.FullName -NewName "jdk-17"
+        }
+        
+        Write-Host "Java 17 installed successfully!"
+    } else {
+        Write-Host "Java 17 already exists at $java17Path"
+    }
+    
+    # Set JAVA_HOME_17_X64 for SonarQube task
+    Write-Host "##vso[task.setvariable variable=JAVA_HOME_17_X64]$java17Path"
+    Write-Host "##vso[task.setvariable variable=PATH]$java17Path\bin;${env:PATH}"
+  displayName: 'Ensure Java 17 is installed'
+
 # Step 5: Code Scan (SonarQube)
 - task: SonarQubePrepare@8
   inputs:
