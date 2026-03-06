@@ -1,16 +1,98 @@
-# CI Pipeline
+# Complete CI Pipeline: Code → Build → Test → Scan → Artifact → Docker → ACR
 trigger:
 - main
+- develop
 
 pool:
-  name: likhitha-b12
+  name: likhitha-b12  
+
+variables:
+  dockerRegistryServiceConnection: 'lal-acr-service' 
+  dockerRegistry: 'lacrreg1.azurecr.io'  
+  imageRepository: 'amazon-app'
+  tag: '$(Build.BuildId)'
+  DockerfilePath: '$(Build.SourcesDirectory)/Amazon/Dockerfile'
+  sonarConnectionName: 'lal-sonarqube' 
+  SONAR_HOST_URL: 'http://52.140.126.191:9000'  
 
 steps:
+# Step 1: Code Checkout
 - checkout: self
+  displayName: '1. Get Code from GitHub'
+
+# Step 2: Build (Compile)
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'Amazon/pom.xml'
+    goals: 'clean compile'
+  displayName: '2. Build: Compile Code'
+
+# Step 3: Test (Run tests)
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'Amazon/pom.xml'
+    goals: 'test'
+  displayName: '3. Test: Run Unit Tests'
+
+# Step 4: Publish Test Results
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: 'Amazon/**/target/surefire-reports/TEST-*.xml'
+    testRunTitle: 'JUnit Tests'
+  displayName: '4. Publish Test Reports'
+
+# Step 5: Code Scan (SonarQube)
+- task: SonarQubePrepare@8
+  inputs:
+    SonarQube: '$(sonarConnectionName)'
+    scannerMode: 'cli'
+    configMode: 'manual'
+    cliProjectKey: 'amazon-app'
+    cliProjectName: 'Amazon App'
+    cliSources: 'Amazon'
+  displayName: '5.1 Prepare SonarQube Scan'
+
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'Amazon/pom.xml'
+    goals: 'sonar:sonar'
+    options: '-Dsonar.host.url=$(SONAR_HOST_URL)'  
+  displayName: '5.2 Run SonarQube Code Scan'
+  
+
+- task: SonarQubePublish@8
+  inputs:
+    pollingTimeoutSec: '300'
+  displayName: '5.3 Publish Scan Results'
+
+# Step 6: Create Artifact (WAR file)
 - task: Maven@3
   inputs:
     mavenPomFile: 'Amazon/pom.xml'
     goals: 'package'
-- task: PublishBuildArtifacts@1
+    options: '-DskipTests'
+  displayName: '6. Create WAR Artifact'
+
+# Step 7: Build Docker Image
+- task: Docker@2
   inputs:
-    pathToPublish: 'Amazon/Amazon-Web/target/*.war'
+    containerRegistry: '$(dockerRegistryServiceConnection)'
+    repository: '$(imageRepository)'
+    command: 'build'
+    Dockerfile: '$(DockerfilePath)'
+    tags: |
+      $(tag)
+      latest
+    buildContext: '$(Build.SourcesDirectory)/Amazon'  # Add build context
+  displayName: '7. Build Docker Image'
+
+# Step 8: Push to Azure Container Registry (ACR)
+- task: Docker@2
+  inputs:
+    containerRegistry: '$(dockerRegistryServiceConnection)'
+    repository: '$(imageRepository)'
+    command: 'push'
+    tags: |
+      $(tag)
+      latest
+  displayName: '8. Push Docker Image to ACR'
