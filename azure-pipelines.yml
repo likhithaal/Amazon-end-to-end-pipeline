@@ -107,7 +107,9 @@ steps:
 # ADD THIS: Run the actual SonarQube analysis
 - task: SonarQubeAnalyze@8
   inputs:
-    jdkversion: 'JAVA_HOME_17_X64'  # This tells it to use built-in Java 17
+    jdkversion: 'JAVA_HOME_17_X64'
+    extraProperties: |
+      sonar.branch.name=
   displayName: '5.3 Run SonarQube Analysis'
 
 - task: SonarQubePublish@8
