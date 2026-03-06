@@ -104,13 +104,11 @@ steps:
     options: '-DskipTests=true'  # Skip tests since you already ran them
   displayName: '5.2 Build Application for SonarQube'
 
-# ADD THIS: Run the actual SonarQube analysis
+# ADD THIS: Run the actual SonarQube analysis- ONLY ON MAIN BRANCH
 - task: SonarQubeAnalyze@8
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   inputs:
     jdkversion: 'JAVA_HOME_17_X64'
-    extraProperties: |  # This MUST be at this indentation level
-      sonar.branch.name=
-      sonar.verbose=false
   displayName: '5.3 Run SonarQube Analysis'
 
 - task: SonarQubePublish@8
