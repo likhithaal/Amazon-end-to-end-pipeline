@@ -108,8 +108,9 @@ steps:
 - task: SonarQubeAnalyze@8
   inputs:
     jdkversion: 'JAVA_HOME_17_X64'
-    extraProperties: |
+    extraProperties: |  # This MUST be at this indentation level
       sonar.branch.name=
+      sonar.verbose=false
   displayName: '5.3 Run SonarQube Analysis'
 
 - task: SonarQubePublish@8
