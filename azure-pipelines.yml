@@ -53,18 +53,22 @@ steps:
     cliSources: 'Amazon'
   displayName: '5.1 Prepare SonarQube Scan'
 
+# CHANGE THIS: Build the application first (no sonar:sonar)
 - task: Maven@3
   inputs:
     mavenPomFile: 'Amazon/pom.xml'
-    goals: 'sonar:sonar'
-    options: '-Dsonar.host.url=$(SONAR_HOST_URL) -Dsonar.login=$(SONAR_TOKEN) -Dsonar.projectKey=amazon-app -X -e'
-    displayName: '5.2 Run SonarQube Code Scan'
-  
+    goals: 'clean compile'  # Changed from 'sonar:sonar' to 'clean compile'
+    options: '-DskipTests=true'  # Skip tests since you already ran them
+  displayName: '5.2 Build Application for SonarQube'
+
+# ADD THIS: Run the actual SonarQube analysis
+- task: SonarQubeAnalyze@8
+  displayName: '5.3 Run SonarQube Analysis'
 
 - task: SonarQubePublish@8
   inputs:
     pollingTimeoutSec: '300'
-  displayName: '5.3 Publish Scan Results'
+  displayName: '5.4 Publish Scan Results'
 
 # Step 6: Create Artifact (WAR file)
 - task: Maven@3
@@ -84,7 +88,7 @@ steps:
     tags: |
       $(tag)
       latest
-    buildContext: '$(Build.SourcesDirectory)/Amazon'  # Add build context
+    buildContext: '$(Build.SourcesDirectory)/Amazon'
   displayName: '7. Build Docker Image'
 
 # Step 8: Push to Azure Container Registry (ACR)
