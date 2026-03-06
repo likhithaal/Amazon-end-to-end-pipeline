@@ -42,38 +42,48 @@ steps:
     testRunTitle: 'JUnit Tests'
   displayName: '4. Publish Test Reports'
 
-  # Step: Install Java 17 on self-hosted agent
 - powershell: |
-    # Check if Java 17 already exists
-    $java17Path = "C:\Program Files\Java\jdk-17"
+    # Install Java 17 to agent's working directory (where agent has write access)
+    $javaPath = "$(Agent.ToolsDirectory)\jdk17"
     
-    if (-not (Test-Path $java17Path)) {
-        Write-Host "Java 17 not found. Downloading and installing..."
+    if (-not (Test-Path $javaPath)) {
+        Write-Host "Java 17 not found. Downloading and installing to $javaPath..."
         
         # Download Java 17
         $url = "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.12_7.zip"
-        $zipPath = "$env:TEMP\jdk17.zip"
+        $zipPath = "$(Agent.TempDirectory)\jdk17.zip"
         
+        Write-Host "Downloading from $url"
         Invoke-WebRequest -Uri $url -OutFile $zipPath
         
-        # Extract to Program Files
-        Expand-Archive -Path $zipPath -DestinationPath "C:\Program Files\Java\" -Force
+        # Extract to tools directory
+        Write-Host "Extracting to $javaPath"
+        Expand-Archive -Path $zipPath -DestinationPath "$(Agent.ToolsDirectory)" -Force
         
-        # Rename extracted folder to jdk-17
-        $extractedFolder = Get-ChildItem "C:\Program Files\Java\" -Directory | Where-Object {$_.Name -like "*jdk-17*"} | Select-Object -First 1
-        if ($extractedFolder -and $extractedFolder.Name -ne "jdk-17") {
-            Rename-Item -Path $extractedFolder.FullName -NewName "jdk-17"
+        # Find the extracted folder and rename if needed
+        $extractedFolder = Get-ChildItem "$(Agent.ToolsDirectory)" -Directory | Where-Object {$_.Name -like "*jdk-17*"} | Select-Object -First 1
+        if ($extractedFolder -and $extractedFolder.Name -ne "jdk17") {
+            Write-Host "Renaming $($extractedFolder.Name) to jdk17"
+            Rename-Item -Path $extractedFolder.FullName -NewName "jdk17" -ErrorAction SilentlyContinue
         }
         
-        Write-Host "Java 17 installed successfully!"
+        Write-Host "Java 17 installed successfully at $javaPath"
     } else {
-        Write-Host "Java 17 already exists at $java17Path"
+        Write-Host "Java 17 already exists at $javaPath"
     }
     
-    # Set JAVA_HOME_17_X64 for SonarQube task
-    Write-Host "##vso[task.setvariable variable=JAVA_HOME_17_X64]$java17Path"
-    Write-Host "##vso[task.setvariable variable=PATH]$java17Path\bin;${env:PATH}"
-  displayName: 'Ensure Java 17 is installed'
+    # Verify Java installation
+    $javaExe = "$javaPath\bin\java.exe"
+    if (Test-Path $javaExe) {
+        & $javaExe -version
+        Write-Host "##vso[task.setvariable variable=JAVA_HOME_17_X64]$javaPath"
+        Write-Host "##vso[task.setvariable variable=PATH]$javaPath\bin;${env:PATH}"
+        Write-Host "Java 17 setup complete!"
+    } else {
+        Write-Host "##vso[task.logissue type=error]Java installation failed - java.exe not found at $javaExe"
+        exit 1
+    }
+  displayName: 'Install Java 17 in agent directory'
 
 # Step 5: Code Scan (SonarQube)
 - task: SonarQubePrepare@8
