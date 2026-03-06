@@ -42,15 +42,7 @@ steps:
     testRunTitle: 'JUnit Tests'
   displayName: '4. Publish Test Reports'
 
-# Step 5: Install java 17
-- task: JavaToolInstaller@0
-  inputs:
-    versionSpec: '17'
-    jdkArchitectureOption: 'x64'
-    jdkSourceOption: 'PreInstalled'
-  displayName: '5. Setup Java 17 for SonarQube'
-
-# Step 6: Code Scan (SonarQube)
+# Step 5: Code Scan (SonarQube)
 - task: SonarQubePrepare@8
   inputs:
     SonarQube: '$(sonarConnectionName)'
@@ -59,7 +51,7 @@ steps:
     cliProjectKey: 'amazon-app'
     cliProjectName: 'Amazon App'
     cliSources: 'Amazon'
-  displayName: '6.1 Prepare SonarQube Scan'
+  displayName: '5.1 Prepare SonarQube Scan'
 
 # CHANGE THIS: Build the application first (no sonar:sonar)
 - task: Maven@3
@@ -67,26 +59,28 @@ steps:
     mavenPomFile: 'Amazon/pom.xml'
     goals: 'clean compile'  # Changed from 'sonar:sonar' to 'clean compile'
     options: '-DskipTests=true'  # Skip tests since you already ran them
-  displayName: '6.2 Build Application for SonarQube'
+  displayName: '5.2 Build Application for SonarQube'
 
 # ADD THIS: Run the actual SonarQube analysis
 - task: SonarQubeAnalyze@8
-  displayName: '6.3 Run SonarQube Analysis'
+  inputs:
+    jdkversion: 'JAVA_HOME_17_X64'  # This tells it to use built-in Java 17
+  displayName: '5.3 Run SonarQube Analysis'
 
 - task: SonarQubePublish@8
   inputs:
     pollingTimeoutSec: '300'
-  displayName: '6.4 Publish Scan Results'
+  displayName: '5.4 Publish Scan Results'
 
-# Step 7: Create Artifact (WAR file)
+# Step 6: Create Artifact (WAR file)
 - task: Maven@3
   inputs:
     mavenPomFile: 'Amazon/pom.xml'
     goals: 'package'
     options: '-DskipTests'
-  displayName: '7. Create WAR Artifact'
+  displayName: '6. Create WAR Artifact'
 
-# Step 8: Build Docker Image
+# Step 7: Build Docker Image
 - task: Docker@2
   inputs:
     containerRegistry: '$(dockerRegistryServiceConnection)'
@@ -97,9 +91,9 @@ steps:
       $(tag)
       latest
     buildContext: '$(Build.SourcesDirectory)/Amazon'
-  displayName: '8. Build Docker Image'
+  displayName: '7. Build Docker Image'
 
-# Step 9: Push to Azure Container Registry (ACR)
+# Step 8: Push to Azure Container Registry (ACR)
 - task: Docker@2
   inputs:
     containerRegistry: '$(dockerRegistryServiceConnection)'
@@ -108,4 +102,4 @@ steps:
     tags: |
       $(tag)
       latest
-  displayName: '9. Push Docker Image to ACR'
+  displayName: '8. Push Docker Image to ACR'
