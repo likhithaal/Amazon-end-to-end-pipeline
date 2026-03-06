@@ -57,7 +57,7 @@ steps:
   inputs:
     mavenPomFile: 'Amazon/pom.xml'
     goals: 'sonar:sonar'
-    options: '-Dsonar.host.url=$(SONAR_HOST_URL) -Dsonar.login=$(SONAR_TOKEN)'
+    options: '-Dsonar.host.url=$(SONAR_HOST_URL) -Dsonar.login=$(SONAR_TOKEN) -Dsonar.projectKey=amazon-app -X -e'
     displayName: '5.2 Run SonarQube Code Scan'
   
 
